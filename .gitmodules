@@ -10,3 +10,6 @@
 [submodule "deps/builtins"]
 	path = deps/builtins
 	url = https://github.com/nervosnetwork/compiler-rt-builtins-riscv
+[submodule "deps/dummy-atomics"]
+	path = deps/dummy-atomics
+	url = https://github.com/xxuejie/lib-dummy-atomics

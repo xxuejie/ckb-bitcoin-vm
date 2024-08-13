@@ -5,10 +5,12 @@ LD := $(subst clang,ld.lld,$(CLANG))
 MUSL := $(realpath deps/musl)
 BUILTINS := $(realpath deps/builtins)
 LIBCXX := $(realpath deps/libcxx)
+DUMMY_ATOMICS := $(realpath deps/dummy-atomics)
 
 MUSL_TARGET := $(MUSL)/release/include/stddef.h
 BUILTINS_TARGET := $(BUILTINS)/build/libcompiler-rt.a
 LIBCXX_TARGET := $(LIBCXX)/release/include/c++/v1/vector
+DUMMY_ATOMICS_TARGET := $(DUMMY_ATOMICS)/libdummyatomics.a
 
 CXXFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
   -g -O3 \
@@ -25,7 +27,9 @@ LDFLAGS := --gc-sections --static \
   -L$(MUSL)/release/lib -L$(BUILTINS)/build \
   -lc -lgcc -lcompiler-rt \
   -L$(LIBCXX)/release/lib \
-  -lc++ -lc++abi -lunwind
+  -lc++ -lc++abi -lunwind \
+  -L$(DUMMY_ATOMICS) \
+  -ldummyatomics
 
 all: build/bitcoin_vm
 
@@ -37,7 +41,7 @@ BITCOIN_LIBS := univalue_get.o univalue_read.o univalue.o \
 	cleanse.o \
 	streams.o uint256.o
 
-build/bitcoin_vm: build/main.o $(foreach o,$(BITCOIN_LIBS),build/$(o)) $(BUILTINS_TARGET)
+build/bitcoin_vm: build/main.o $(foreach o,$(BITCOIN_LIBS),build/$(o)) $(BUILTINS_TARGET) $(DUMMY_ATOMICS_TARGET)
 	$(LD) $< $(foreach o,$(BITCOIN_LIBS),build/$(o)) -o $@ $(LDFLAGS)
 
 build/%.o: %.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
@@ -85,14 +89,23 @@ $(LIBCXX_TARGET): $(MUSL_TARGET)
 	cd $(LIBCXX) && \
 		CLANG=$(CLANG) \
 			MUSL=$(MUSL)/release \
-			LIBCXXABI_CMAKE_OPTIONS="-DLIBCXXABI_NON_DEMANGLING_TERMINATE=ON" \
+			LIBUNWIND_CMAKE_OPTIONS="-DLIBUNWIND_ENABLE_THREADS=ON" \
+			LIBCXX_CMAKE_OPTIONS="-DLIBCXX_ENABLE_THREADS=ON -DLIBCXX_HAS_PTHREAD_API=ON" \
+			LIBCXXABI_CMAKE_OPTIONS="-DLIBCXXABI_ENABLE_THREADS=ON -DLIBCXXABI_NON_DEMANGLING_TERMINATE=ON" \
 		  ./build.sh
 	touch $@
+
+$(DUMMY_ATOMICS_TARGET): $(MUSL_TARGET)
+	cd $(DUMMY_ATOMICS) && \
+		make CC=$(CLANG) \
+			AR=$(subst clang,llvm-ar,$(CLANG)) \
+			CFLAGS="-Wall -Werror -Wextra -O3 -g -fdata-sections -ffunction-sections --target=riscv64  -march=rv64imc_zba_zbb_zbc_zbs -nostdinc -I $(MUSL)/release/include"
 
 clean:
 	rm -rf build/bitcoin_vm build/*.o
 	cd $(MUSL) && make clean && rm -rf release
 	cd $(BUILTINS) && make clean
 	cd $(LIBCXX) && rm -rf release
+	cd $(DUMMY_ATOMICS) && make clean
 
 .PHONY: clean all
