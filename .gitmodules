@@ -1,0 +1,12 @@
+[submodule "deps/bitcoin"]
+	path = deps/bitcoin
+	url = https://github.com/bitcoin/bitcoin
+[submodule "deps/libcxx"]
+	path = deps/libcxx
+	url = https://github.com/xxuejie/ckb-libcxx-builder
+[submodule "deps/musl"]
+	path = deps/musl
+	url = https://github.com/xxuejie/musl
+[submodule "deps/builtins"]
+	path = deps/builtins
+	url = https://github.com/nervosnetwork/compiler-rt-builtins-riscv

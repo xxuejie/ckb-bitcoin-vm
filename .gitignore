@@ -1,0 +1,3 @@
+/build/bitcoin_vm
+/build/*.o
+*.json
