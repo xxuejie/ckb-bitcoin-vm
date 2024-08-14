@@ -80,6 +80,7 @@ build/%.o: deps/bitcoin/src/secp256k1/src/%.c $(MUSL_TARGET)
 		$(CFLAGS) \
 		-DENABLE_MODULE_EXTRAKEYS \
 		-DENABLE_MODULE_SCHNORRSIG \
+		-DECMULT_WINDOW_SIZE=6 \
 		-I deps/bitcoin/src/secp256k1/include
 
 $(MUSL_TARGET):
