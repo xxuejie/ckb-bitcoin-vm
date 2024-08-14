@@ -182,10 +182,8 @@ static void array_end(jsonlite_callback_context *c) {
   Context *context = (Context *)c->client_state;
 
   if (context->state == s_vin) {
-    printf("Terminating vin, count: %ld\n", context->mtx.vin.size());
     context->state = s_not_interested;
   } else if (context->state == s_vout) {
-    printf("Terminating vout, count: %ld\n", context->mtx.vout.size());
     context->state = s_not_interested;
   } else if (context->state == s_vin_witness) {
     context->state = s_vin;
