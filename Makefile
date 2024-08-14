@@ -11,7 +11,7 @@ BUILTINS_TARGET := $(BUILTINS)/build/libcompiler-rt.a
 LIBCXX_TARGET := $(LIBCXX)/release/include/c++/v1/vector
 
 CFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
-  -g -O3 \
+  -g -Os \
   -Wall -Werror \
   -Wno-unused-function \
   -nostdinc \
@@ -19,7 +19,7 @@ CFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
   -fvisibility=hidden \
   -fdata-sections -ffunction-sections
 CXXFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
-  -g -O3 \
+  -g -Os \
   -Wall -Werror \
   -std=c++20 \
   -D_GNU_SOURCE \
@@ -104,7 +104,9 @@ $(LIBCXX_TARGET): $(MUSL_TARGET)
 	cd $(LIBCXX) && \
 		CLANG=$(CLANG) \
 			MUSL=$(MUSL)/release \
-			LIBCXXABI_CMAKE_OPTIONS="-DLIBCXXABI_NON_DEMANGLING_TERMINATE=ON" \
+			LIBUNWIND_CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=MinSizeRel" \
+			LIBCXX_CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=MinSizeRel" \
+			LIBCXXABI_CMAKE_OPTIONS="-DLIBCXXABI_NON_DEMANGLING_TERMINATE=ON -DCMAKE_BUILD_TYPE=MinSizeRel" \
 		  ./build.sh
 	touch $@
 
