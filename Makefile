@@ -38,23 +38,24 @@ LDFLAGS := --gc-sections --static \
 
 all: build/bitcoin_vm
 
-BITCOIN_LIBS := univalue_get.o univalue_read.o univalue.o \
+BITCOIN_LIBS := \
 	transaction.o \
 	script.o script_error.o interpreter.o \
 	hex_base.o sha256.o sha1.o ripemd160.o \
 	strencodings.o \
 	cleanse.o \
 	streams.o uint256.o hash.o pubkey.o \
-	secp256k1.o precomputed_ecmult.o
+	secp256k1.o precomputed_ecmult.o \
+	jsonlite.o
 
 build/bitcoin_vm: build/main.o $(foreach o,$(BITCOIN_LIBS),build/$(o)) $(BUILTINS_TARGET)
 	$(LD) $< $(foreach o,$(BITCOIN_LIBS),build/$(o)) -o $@ $(LDFLAGS)
 
 build/%.o: %.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
-	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I deps/jsonlite/amalgamated/jsonlite
 
-build/%.o: deps/bitcoin/src/univalue/lib/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
-	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I deps/bitcoin/src/univalue/include
+build/%.o: deps/jsonlite/amalgamated/jsonlite/%.c $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANG) -c $< -o $@ $(CFLAGS) -I deps/jsonlite/amalgamated/jsonlite
 
 build/%.o: deps/bitcoin/src/primitives/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)

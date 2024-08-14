@@ -10,3 +10,6 @@
 [submodule "deps/builtins"]
 	path = deps/builtins
 	url = https://github.com/nervosnetwork/compiler-rt-builtins-riscv
+[submodule "deps/jsonlite"]
+	path = deps/jsonlite
+	url = https://github.com/amamchur/jsonlite
