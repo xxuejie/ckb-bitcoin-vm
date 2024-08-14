@@ -79,6 +79,7 @@ build/%.o: deps/bitcoin/src/secp256k1/src/%.c $(MUSL_TARGET)
 		-o $@ \
 		$(CFLAGS) \
 		-DENABLE_MODULE_EXTRAKEYS \
+		-DENABLE_MODULE_SCHNORRSIG \
 		-I deps/bitcoin/src/secp256k1/include
 
 $(MUSL_TARGET):

@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
   mtx.nLockTime = root_obj.find_value("locktime").getInt<uint32_t>();
 
   const UniValue& vins = root_obj.find_value("vin").get_array();
-  std::vector<CScript> vin_pubkeys;
+  std::vector<CTxOut> spent_outputs;
   for (size_t i = 0; i < vins.size(); i++) {
     const UniValue& vin = vins[i].get_obj();
 
@@ -76,14 +76,6 @@ int main(int argc, char* argv[]) {
       cin.scriptSig = CScript(sig.begin(), sig.end());
     }
 
-    std::string pubkey_str = vin.find_value("prevout")
-                                 .get_obj()
-                                 .find_value("scriptpubkey")
-                                 .get_str();
-    assert(IsHex(pubkey_str));
-    std::vector<uint8_t> pubkey = ParseHex(pubkey_str);
-    vin_pubkeys.push_back(CScript(pubkey.begin(), pubkey.end()));
-
     if (vin.exists("witness")) {
       const UniValue& witnesses = vin.find_value("witness").get_array();
       for (size_t j = 0; j < witnesses.size(); j++) {
@@ -95,6 +87,16 @@ int main(int argc, char* argv[]) {
     }
 
     mtx.vin.push_back(cin);
+
+    {
+      const UniValue& prevout = vin.find_value("prevout").get_obj();
+      std::string pubkey_str = prevout.find_value("scriptpubkey").get_str();
+      assert(IsHex(pubkey_str));
+      std::vector<uint8_t> pubkey = ParseHex(pubkey_str);
+      spent_outputs.push_back(
+          CTxOut(prevout.find_value("value").getInt<int64_t>(),
+                 CScript(pubkey.begin(), pubkey.end())));
+    }
   }
 
   const UniValue& vouts = root_obj.find_value("vout").get_array();
@@ -121,11 +123,17 @@ int main(int argc, char* argv[]) {
   // std::string hex_tx = HexStr(ssTx);
   // printf("TX: %s\n", hex_tx.c_str());
 
-  DummyChecker checker;
+  PrecomputedTransactionData txdata;
+  txdata.Init(tx, std::move(spent_outputs));
   for (size_t i = 0; i < tx.vin.size(); i++) {
     ScriptError error = SCRIPT_ERR_OK;
+    TransactionSignatureChecker checker(
+        &tx, i, txdata.m_spent_outputs[i].nValue, txdata,
+        MissingDataBehavior::ASSERT_FAIL);
+
     uint64_t before = ckb_current_cycles();
-    bool result = VerifyScript(tx.vin[i].scriptSig, vin_pubkeys[i],
+    bool result = VerifyScript(tx.vin[i].scriptSig,
+                               txdata.m_spent_outputs[i].scriptPubKey,
                                &tx.vin[i].scriptWitness,
                                STANDARD_SCRIPT_VERIFY_FLAGS, checker, &error);
     uint64_t after = ckb_current_cycles();
