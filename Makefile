@@ -1,6 +1,7 @@
 CLANG := clang-18
 CLANGXX := $(subst clang,clang++,$(CLANG))
 LD := $(subst clang,ld.lld,$(CLANG))
+OBJCOPY := $(subst clang,llvm-objcopy,$(CLANG))
 
 MUSL := $(realpath deps/musl)
 BUILTINS := $(realpath deps/builtins)
@@ -36,7 +37,7 @@ LDFLAGS := --gc-sections --static \
   -L$(LIBCXX)/release/lib \
   -lc++ -lc++abi -lunwind
 
-all: build/bitcoin_vm
+all: build/bitcoin_vm build/bitcoin_vm_stripped
 
 BITCOIN_LIBS := \
 	transaction.o \
@@ -47,6 +48,9 @@ BITCOIN_LIBS := \
 	streams.o uint256.o hash.o pubkey.o \
 	secp256k1.o precomputed_ecmult.o \
 	jsonlite.o
+
+build/bitcoin_vm_stripped: build/bitcoin_vm
+	$(OBJCOPY) --strip-all $< $@
 
 build/bitcoin_vm: build/main.o $(foreach o,$(BITCOIN_LIBS),build/$(o)) $(BUILTINS_TARGET)
 	$(LD) $< $(foreach o,$(BITCOIN_LIBS),build/$(o)) -o $@ $(LDFLAGS)
@@ -117,7 +121,7 @@ $(LIBCXX_TARGET): $(MUSL_TARGET)
 	touch $@
 
 clean:
-	rm -rf build/bitcoin_vm build/*.o
+	rm -rf build/bitcoin_vm build/bitcoin_vm_stripped build/*.o
 	cd $(MUSL) && make clean && rm -rf release
 	cd $(BUILTINS) && make clean
 	cd $(LIBCXX) && rm -rf release
