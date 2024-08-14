@@ -12,36 +12,6 @@
 
 #include "ckb.h"
 
-class DummyChecker : public BaseSignatureChecker {
- public:
-  bool CheckECDSASignature(const std::vector<unsigned char>& scriptSig,
-                           const std::vector<unsigned char>& vchPubKey,
-                           const CScript& scriptCode,
-                           SigVersion sigversion) const {
-    printf("TODO: validating ECDSA signature!\n");
-    return true;
-  }
-
-  bool CheckSchnorrSignature(Span<const unsigned char> sig,
-                             Span<const unsigned char> pubkey,
-                             SigVersion sigversion,
-                             ScriptExecutionData& execdata,
-                             ScriptError* serror = nullptr) const {
-    printf("TODO: validating schnorr signature!\n");
-    return true;
-  }
-
-  bool CheckLockTime(const CScriptNum& nLockTime) const {
-    printf("TODO: checking lock time: %ld\n", nLockTime.GetInt64());
-    return true;
-  }
-
-  bool CheckSequence(const CScriptNum& nSequence) const {
-    printf("TODO: checking sequence: %ld\n", nSequence.GetInt64());
-    return true;
-  }
-};
-
 int main(int argc, char* argv[]) {
   if (argc != 2) {
     printf("Usage: %s <Bitcoin TX in mempool API JSON response format>\n",
