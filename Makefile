@@ -85,7 +85,9 @@ build/%.o: deps/bitcoin/src/secp256k1/src/%.c $(MUSL_TARGET)
 
 $(MUSL_TARGET):
 	cd $(MUSL) && \
-		CLANG=$(CLANG) ./ckb/build.sh
+		CLANG=$(CLANG) \
+			BASE_CFLAGS="--target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs -DPAGE_SIZE=4096 -Os -fdata-sections -ffunction-sections" \
+			./ckb/build.sh
 
 BUILTINS_CFLAGS := --target=riscv64  -march=rv64imc_zba_zbb_zbc_zbs -mabi=lp64 
 BUILTINS_CFLAGS += -nostdinc -I ../musl/release/include
@@ -103,6 +105,7 @@ $(BUILTINS_TARGET): $(MUSL_TARGET)
 $(LIBCXX_TARGET): $(MUSL_TARGET)
 	cd $(LIBCXX) && \
 		CLANG=$(CLANG) \
+			BASE_CFLAGS="--target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs -Os -fdata-sections -ffunction-sections" \
 			MUSL=$(MUSL)/release \
 			LLVM_VERSION="18.1.8" \
 			LLVM_PATCH="$(realpath llvm_patch)" \
