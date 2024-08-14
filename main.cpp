@@ -1,12 +1,46 @@
+#include <policy/policy.h>
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
 #include <script/script.h>
+#include <script/script_error.h>
 #include <streams.h>
 #include <univalue/include/univalue.h>
 
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+
+#include "ckb.h"
+
+class DummyChecker : public BaseSignatureChecker {
+ public:
+  bool CheckECDSASignature(const std::vector<unsigned char>& scriptSig,
+                           const std::vector<unsigned char>& vchPubKey,
+                           const CScript& scriptCode,
+                           SigVersion sigversion) const {
+    printf("TODO: validating ECDSA signature!\n");
+    return true;
+  }
+
+  bool CheckSchnorrSignature(Span<const unsigned char> sig,
+                             Span<const unsigned char> pubkey,
+                             SigVersion sigversion,
+                             ScriptExecutionData& execdata,
+                             ScriptError* serror = nullptr) const {
+    printf("TODO: validating schnorr signature!\n");
+    return true;
+  }
+
+  bool CheckLockTime(const CScriptNum& nLockTime) const {
+    printf("TODO: checking lock time: %ld\n", nLockTime.GetInt64());
+    return true;
+  }
+
+  bool CheckSequence(const CScriptNum& nSequence) const {
+    printf("TODO: checking sequence: %ld\n", nSequence.GetInt64());
+    return true;
+  }
+};
 
 int main(int argc, char* argv[]) {
   if (argc != 2) {
@@ -24,6 +58,7 @@ int main(int argc, char* argv[]) {
   mtx.nLockTime = root_obj.find_value("locktime").getInt<uint32_t>();
 
   const UniValue& vins = root_obj.find_value("vin").get_array();
+  std::vector<CScript> vin_pubkeys;
   for (size_t i = 0; i < vins.size(); i++) {
     const UniValue& vin = vins[i].get_obj();
 
@@ -40,6 +75,14 @@ int main(int argc, char* argv[]) {
       std::vector<uint8_t> sig = ParseHex(sig_str);
       cin.scriptSig = CScript(sig.begin(), sig.end());
     }
+
+    std::string pubkey_str = vin.find_value("prevout")
+                                 .get_obj()
+                                 .find_value("scriptpubkey")
+                                 .get_str();
+    assert(IsHex(pubkey_str));
+    std::vector<uint8_t> pubkey = ParseHex(pubkey_str);
+    vin_pubkeys.push_back(CScript(pubkey.begin(), pubkey.end()));
 
     if (vin.exists("witness")) {
       const UniValue& witnesses = vin.find_value("witness").get_array();
@@ -73,11 +116,28 @@ int main(int argc, char* argv[]) {
   CTransaction tx(mtx);
 
   // This is in fact EncodeHexTx but core_write.cpp has blockers
-  DataStream ssTx;
-  ssTx << TX_WITH_WITNESS(tx);
-  std::string hex_tx = HexStr(ssTx);
+  // DataStream ssTx;
+  // ssTx << TX_WITH_WITNESS(tx);
+  // std::string hex_tx = HexStr(ssTx);
+  // printf("TX: %s\n", hex_tx.c_str());
 
-  printf("TX: %s\n", hex_tx.c_str());
+  DummyChecker checker;
+  for (size_t i = 0; i < tx.vin.size(); i++) {
+    ScriptError error = SCRIPT_ERR_OK;
+    uint64_t before = ckb_current_cycles();
+    bool result = VerifyScript(tx.vin[i].scriptSig, vin_pubkeys[i],
+                               &tx.vin[i].scriptWitness,
+                               STANDARD_SCRIPT_VERIFY_FLAGS, checker, &error);
+    uint64_t after = ckb_current_cycles();
+
+    if (!result) {
+      printf("Error verifying vin %ld: %s\n", i,
+             ScriptErrorString(error).c_str());
+      return -2;
+    }
+
+    printf("Vin %ld takes %lu cycles to validate\n", i, (after - before));
+  }
 
   return 0;
 }

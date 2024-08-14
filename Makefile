@@ -10,8 +10,17 @@ MUSL_TARGET := $(MUSL)/release/include/stddef.h
 BUILTINS_TARGET := $(BUILTINS)/build/libcompiler-rt.a
 LIBCXX_TARGET := $(LIBCXX)/release/include/c++/v1/vector
 
+CFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
+  -g -O3 \
+  -Wall -Werror \
+  -Wno-unused-function \
+  -nostdinc \
+  -isystem $(MUSL)/release/include \
+  -fvisibility=hidden \
+  -fdata-sections -ffunction-sections
 CXXFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
   -g -O3 \
+  -Wall -Werror \
   -std=c++20 \
   -D_GNU_SOURCE \
   -nostdinc -nostdinc++ \
@@ -31,11 +40,12 @@ all: build/bitcoin_vm
 
 BITCOIN_LIBS := univalue_get.o univalue_read.o univalue.o \
 	transaction.o \
-	script.o \
-	hex_base.o sha256.o \
+	script.o script_error.o interpreter.o \
+	hex_base.o sha256.o sha1.o ripemd160.o \
 	strencodings.o \
 	cleanse.o \
-	streams.o uint256.o
+	streams.o uint256.o hash.o pubkey.o \
+	secp256k1.o precomputed_ecmult.o
 
 build/bitcoin_vm: build/main.o $(foreach o,$(BITCOIN_LIBS),build/$(o)) $(BUILTINS_TARGET)
 	$(LD) $< $(foreach o,$(BITCOIN_LIBS),build/$(o)) -o $@ $(LDFLAGS)
@@ -62,7 +72,14 @@ build/%.o: deps/bitcoin/src/support/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
 
 build/%.o: deps/bitcoin/src/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
-	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I deps/bitcoin/src/secp256k1/include
+
+build/%.o: deps/bitcoin/src/secp256k1/src/%.c $(MUSL_TARGET)
+	$(CLANG) -c $< \
+		-o $@ \
+		$(CFLAGS) \
+		-DENABLE_MODULE_EXTRAKEYS \
+		-I deps/bitcoin/src/secp256k1/include
 
 $(MUSL_TARGET):
 	cd $(MUSL) && \
