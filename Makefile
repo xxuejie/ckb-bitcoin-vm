@@ -116,7 +116,7 @@ $(LIBCXX_TARGET): $(MUSL_TARGET)
 			DEBUG=1 \
 			BASE_CFLAGS="$(BASE_CFLAGS)" \
 			MUSL=$(MUSL)/release \
-			LLVM_VERSION="18.1.8" \
+			LLVM_VERSION="19.1.0-rc2" \
 			LLVM_PATCH="$(realpath llvm_patch)" \
 			LLVM_CMAKE_OPTIONS="$(LLVM_CMAKE_OPTIONS)" \
 		  ./build.sh
