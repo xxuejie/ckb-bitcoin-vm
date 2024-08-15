@@ -13,6 +13,7 @@ LIBCXX_TARGET := $(LIBCXX)/release/include/c++/v1/vector
 
 BASE_CFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
 	-Os \
+	-DNDEBUG -Wno-return-type -Wno-unused-function \
 	-fdata-sections -ffunction-sections -fvisibility=hidden
 CFLAGS := -g \
   -Wall -Werror \
