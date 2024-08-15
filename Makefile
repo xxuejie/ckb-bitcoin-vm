@@ -11,25 +11,24 @@ MUSL_TARGET := $(MUSL)/release/include/stddef.h
 BUILTINS_TARGET := $(BUILTINS)/build/libcompiler-rt.a
 LIBCXX_TARGET := $(LIBCXX)/release/include/c++/v1/vector
 
-CFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
-  -g -Os \
+BASE_CFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
+	-Os \
+	-fdata-sections -ffunction-sections -fvisibility=hidden
+CFLAGS := $(BASE_CFLAGS) \
+  -g \
   -Wall -Werror \
   -Wno-unused-function \
   -nostdinc \
-  -isystem $(MUSL)/release/include \
-  -fvisibility=hidden \
-  -fdata-sections -ffunction-sections
-CXXFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
-  -g -Os \
+  -isystem $(MUSL)/release/include
+CXXFLAGS := $(BASE_CFLAGS) \
+  -g \
   -Wall -Werror \
   -std=c++20 \
   -D_GNU_SOURCE \
   -nostdinc -nostdinc++ \
   -isystem $(LIBCXX)/release/include/c++/v1 \
   -isystem $(MUSL)/release/include \
-  -I deps/bitcoin/src \
-  -fvisibility=hidden \
-  -fdata-sections -ffunction-sections
+  -I deps/bitcoin/src
 LDFLAGS := --gc-sections --static \
   --nostdlib --sysroot $(MUSL)/release \
   -L$(MUSL)/release/lib -L$(BUILTINS)/build \
@@ -91,7 +90,7 @@ build/%.o: deps/bitcoin/src/secp256k1/src/%.c $(MUSL_TARGET)
 $(MUSL_TARGET):
 	cd $(MUSL) && \
 		CLANG=$(CLANG) \
-			BASE_CFLAGS="--target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs -DPAGE_SIZE=4096 -Os -fdata-sections -ffunction-sections" \
+			BASE_CFLAGS="$(BASE_CFLAGS) -DPAGE_SIZE=4096 -Os" \
 			./ckb/build.sh
 
 BUILTINS_CFLAGS := --target=riscv64  -march=rv64imc_zba_zbb_zbc_zbs -mabi=lp64 
@@ -107,16 +106,19 @@ $(BUILTINS_TARGET): $(MUSL_TARGET)
 			AR=$(subst clang,llvm-ar,$(CLANG)) \
 			CFLAGS="$(BUILTINS_CFLAGS)"
 
+LLVM_CMAKE_OPTIONS := -DCMAKE_BUILD_TYPE=MinSizeRel
+LLVM_CMAKE_OPTIONS += -DLIBCXX_ENABLE_WIDE_CHARACTERS=OFF -DLIBCXX_ENABLE_UNICODE=OFF -DLIBCXX_ENABLE_RANDOM_DEVICE=OFF
+LLVM_CMAKE_OPTIONS += -DLIBCXXABI_NON_DEMANGLING_TERMINATE=ON
+
 $(LIBCXX_TARGET): $(MUSL_TARGET)
 	cd $(LIBCXX) && \
 		CLANG=$(CLANG) \
-			BASE_CFLAGS="--target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs -Os -fdata-sections -ffunction-sections" \
+			DEBUG=1 \
+			BASE_CFLAGS="$(BASE_CFLAGS)" \
 			MUSL=$(MUSL)/release \
 			LLVM_VERSION="18.1.8" \
 			LLVM_PATCH="$(realpath llvm_patch)" \
-			LIBUNWIND_CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=MinSizeRel" \
-			LIBCXX_CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=MinSizeRel -DLIBCXX_ENABLE_WIDE_CHARACTERS=OFF -DLIBCXX_ENABLE_UNICODE=OFF -DLIBCXX_ENABLE_RANDOM_DEVICE=OFF" \
-			LIBCXXABI_CMAKE_OPTIONS="-DLIBCXXABI_NON_DEMANGLING_TERMINATE=ON -DCMAKE_BUILD_TYPE=MinSizeRel" \
+			LLVM_CMAKE_OPTIONS="$(LLVM_CMAKE_OPTIONS)" \
 		  ./build.sh
 	touch $@
 
