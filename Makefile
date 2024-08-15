@@ -14,21 +14,21 @@ LIBCXX_TARGET := $(LIBCXX)/release/include/c++/v1/vector
 BASE_CFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
 	-Os \
 	-fdata-sections -ffunction-sections -fvisibility=hidden
-CFLAGS := $(BASE_CFLAGS) \
-  -g \
+CFLAGS := -g \
   -Wall -Werror \
   -Wno-unused-function \
   -nostdinc \
-  -isystem $(MUSL)/release/include
-CXXFLAGS := $(BASE_CFLAGS) \
-  -g \
+  -isystem $(MUSL)/release/include \
+  $(BASE_CFLAGS)
+CXXFLAGS := -g \
   -Wall -Werror \
   -std=c++20 \
   -D_GNU_SOURCE \
   -nostdinc -nostdinc++ \
   -isystem $(LIBCXX)/release/include/c++/v1 \
   -isystem $(MUSL)/release/include \
-  -I deps/bitcoin/src
+  -I deps/bitcoin/src \
+  $(BASE_CFLAGS)
 LDFLAGS := --gc-sections --static \
   --nostdlib --sysroot $(MUSL)/release \
   -L$(MUSL)/release/lib -L$(BUILTINS)/build \
