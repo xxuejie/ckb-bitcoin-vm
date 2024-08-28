@@ -1,4 +1,5 @@
 /build/bitcoin_vm
 /build/bitcoin_vm_stripped
 /build/*.o
+/build/*.txt
 *.json

@@ -11,15 +11,19 @@ MUSL_TARGET := $(MUSL)/release/include/stddef.h
 BUILTINS_TARGET := $(BUILTINS)/build/libcompiler-rt.a
 LIBCXX_TARGET := $(LIBCXX)/release/include/c++/v1/vector
 
+DEBUG := false
+
 BASE_CFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
 	-Os \
 	-fdata-sections -ffunction-sections -fvisibility=hidden
+
 CFLAGS := -g \
   -Wall -Werror \
   -Wno-unused-function \
   -nostdinc \
   -isystem $(MUSL)/release/include \
   $(BASE_CFLAGS)
+
 CXXFLAGS := -g \
   -Wall -Werror \
   -std=c++20 \
@@ -28,7 +32,12 @@ CXXFLAGS := -g \
   -isystem $(LIBCXX)/release/include/c++/v1 \
   -isystem $(MUSL)/release/include \
   -I deps/bitcoin/src \
+  -DDISABLE_OPTIMIZED_SHA256 \
   $(BASE_CFLAGS)
+ifneq (true,$(DEBUG))
+	CXXFLAGS += -DNO_DEBUG_INFO
+endif
+
 LDFLAGS := --gc-sections --static \
   --nostdlib --sysroot $(MUSL)/release \
   -L$(MUSL)/release/lib -L$(BUILTINS)/build \
@@ -52,7 +61,7 @@ build/bitcoin_vm_stripped: build/bitcoin_vm
 	$(OBJCOPY) --strip-all $< $@
 
 build/bitcoin_vm: build/main.o $(foreach o,$(BITCOIN_LIBS),build/$(o)) $(BUILTINS_TARGET)
-	$(LD) $< $(foreach o,$(BITCOIN_LIBS),build/$(o)) -o $@ $(LDFLAGS)
+	$(LD) $< $(foreach o,$(BITCOIN_LIBS),build/$(o)) -o $@ $(LDFLAGS) --Map=$@_link_map.txt
 
 build/%.o: %.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I deps/jsonlite/amalgamated/jsonlite
@@ -62,21 +71,27 @@ build/%.o: deps/jsonlite/amalgamated/jsonlite/%.c $(MUSL_TARGET) $(LIBCXX_TARGET
 
 build/%.o: deps/bitcoin/src/primitives/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/script/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/crypto/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I build
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/util/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/support/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I deps/bitcoin/src/secp256k1/include
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/secp256k1/src/%.c $(MUSL_TARGET)
 	$(CLANG) -c $< \
@@ -87,10 +102,15 @@ build/%.o: deps/bitcoin/src/secp256k1/src/%.c $(MUSL_TARGET)
 		-DECMULT_WINDOW_SIZE=6 \
 		-I deps/bitcoin/src/secp256k1/include
 
+MUSL_CFLAGS := $(BASE_CFLAGS) -DPAGE_SIZE=4096
+ifneq (true,$(DEBUG))
+	MUSL_CFLAGS += -DCKB_MUSL_DUMMIFY_PRINTF
+endif
+
 $(MUSL_TARGET):
 	cd $(MUSL) && \
 		CLANG=$(CLANG) \
-			BASE_CFLAGS="$(BASE_CFLAGS) -DPAGE_SIZE=4096 -Os" \
+			BASE_CFLAGS="$(MUSL_CFLAGS)" \
 			./ckb/build.sh
 
 BUILTINS_CFLAGS := --target=riscv64  -march=rv64imc_zba_zbb_zbc_zbs -mabi=lp64 

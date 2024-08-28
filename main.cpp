@@ -10,7 +10,7 @@
 #include <cstdio>
 #include <cstring>
 
-#ifndef NDEBUG
+#ifndef NO_DEBUG_INFO
 #include "ckb.h"
 #endif
 
@@ -194,7 +194,7 @@ static void array_end(jsonlite_callback_context *c) {
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
-#ifndef NDEBUG
+#ifndef NO_DEBUG_INFO
     printf("Usage: %s <Bitcoin TX in mempool API JSON response format>\n",
            argv[0]);
 #endif
@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
   jsonlite_result result =
       jsonlite_parser_tokenize(parser, argv[1], strlen(argv[1]));
   if (result != jsonlite_result_ok) {
-#ifndef NDEBUG
+#ifndef NO_DEBUG_INFO
     printf("Error parsing json: %d\n", result);
 #endif
     return -1;
@@ -247,26 +247,26 @@ int main(int argc, char *argv[]) {
         &tx, i, txdata.m_spent_outputs[i].nValue, txdata,
         MissingDataBehavior::ASSERT_FAIL);
 
-#ifndef NDEBUG
+#ifndef NO_DEBUG_INFO
     uint64_t before = ckb_current_cycles();
 #endif
     bool result = VerifyScript(tx.vin[i].scriptSig,
                                txdata.m_spent_outputs[i].scriptPubKey,
                                &tx.vin[i].scriptWitness,
                                STANDARD_SCRIPT_VERIFY_FLAGS, checker, &error);
-#ifndef NDEBUG
+#ifndef NO_DEBUG_INFO
     uint64_t after = ckb_current_cycles();
 #endif
 
     if (!result) {
-#ifndef NDEBUG
+#ifndef NO_DEBUG_INFO
       printf("Error verifying vin %ld: %s\n", i,
              ScriptErrorString(error).c_str());
 #endif
       return -2;
     }
 
-#ifndef NDEBUG
+#ifndef NO_DEBUG_INFO
     printf("Vin %ld takes %lu cycles to validate\n", i, (after - before));
 #endif
   }
