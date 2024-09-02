@@ -142,7 +142,7 @@ $(LIBCXX_TARGET): $(MUSL_TARGET)
 	touch $@
 
 clean:
-	rm -rf build/bitcoin_vm build/bitcoin_vm_stripped build/*.o
+	rm -rf build/bitcoin_vm build/bitcoin_vm_stripped build/*.o build/*.txt
 	cd $(MUSL) && make clean && rm -rf release
 	cd $(BUILTINS) && make clean
 	cd $(LIBCXX) && rm -rf release
