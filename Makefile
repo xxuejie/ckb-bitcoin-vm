@@ -48,7 +48,7 @@ LDFLAGS := --gc-sections --static \
 all: build/bitcoin_vm build/bitcoin_vm_stripped
 
 BITCOIN_LIBS := interpreter.o sha256.o jsonlite.o script.o hash.o pubkey.o \
-	secp256k1.o
+	secp256k1.o precomputed_ecmult.o
 
 build/bitcoin_vm_stripped: build/bitcoin_vm
 	$(OBJCOPY) --strip-all $< $@
@@ -78,6 +78,15 @@ build/pubkey.o: deps/bitcoin/src/pubkey.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I deps/bitcoin/src/secp256k1/include
 
 build/secp256k1.o: deps/bitcoin/src/secp256k1/src/secp256k1.c $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANG) -c $< \
+		-o $@ \
+		$(CFLAGS) \
+		-DENABLE_MODULE_EXTRAKEYS \
+		-DENABLE_MODULE_SCHNORRSIG \
+		-DECMULT_WINDOW_SIZE=6 \
+		-I deps/bitcoin/src/secp256k1/include
+
+build/precomputed_ecmult.o: deps/bitcoin/src/secp256k1/src/precomputed_ecmult.c $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANG) -c $< \
 		-o $@ \
 		$(CFLAGS) \
