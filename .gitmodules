@@ -13,3 +13,6 @@
 [submodule "deps/jsonlite"]
 	path = deps/jsonlite
 	url = https://github.com/amamchur/jsonlite
+[submodule "deps/dummy-atomics"]
+	path = deps/dummy-atomics
+	url = https://github.com/xxuejie/lib-dummy-atomics

@@ -1,3 +1,4 @@
+#include <core_io.h>
 #include <jsonlite.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
@@ -13,6 +14,8 @@
 #ifndef NO_DEBUG_INFO
 #include "ckb.h"
 #endif
+
+const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
 
 typedef enum {
   s_not_interested = 0,
@@ -237,7 +240,10 @@ int main(int argc, char *argv[]) {
   // DataStream ssTx;
   // ssTx << TX_WITH_WITNESS(tx);
   // std::string hex_tx = HexStr(ssTx);
-  // printf("TX: %s\n", hex_tx.c_str());
+#ifndef NO_DEBUG_INFO
+  std::string hex_tx = EncodeHexTx(tx);
+  printf("TX: %s\n", hex_tx.c_str());
+#endif
 
   PrecomputedTransactionData txdata;
   txdata.Init(tx, std::move(context.spent_outputs));
