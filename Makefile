@@ -47,15 +47,7 @@ LDFLAGS := --gc-sections --static \
 
 all: build/bitcoin_vm build/bitcoin_vm_stripped
 
-BITCOIN_LIBS := \
-	transaction.o \
-	script.o script_error.o interpreter.o \
-	hex_base.o sha256.o sha1.o ripemd160.o \
-	strencodings.o \
-	cleanse.o \
-	streams.o uint256.o hash.o pubkey.o \
-	secp256k1.o precomputed_ecmult.o \
-	jsonlite.o
+BITCOIN_LIBS := interpreter.o
 
 build/bitcoin_vm_stripped: build/bitcoin_vm
 	$(OBJCOPY) --strip-all $< $@
@@ -63,44 +55,11 @@ build/bitcoin_vm_stripped: build/bitcoin_vm
 build/bitcoin_vm: build/main.o $(foreach o,$(BITCOIN_LIBS),build/$(o)) $(BUILTINS_TARGET)
 	$(LD) $< $(foreach o,$(BITCOIN_LIBS),build/$(o)) -o $@ $(LDFLAGS) --Map=$@_link_map.txt
 
-build/%.o: %.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+build/main.o: main.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I deps/jsonlite/amalgamated/jsonlite
 
-build/%.o: deps/jsonlite/amalgamated/jsonlite/%.c $(MUSL_TARGET) $(LIBCXX_TARGET)
-	$(CLANG) -c $< -o $@ $(CFLAGS) -I deps/jsonlite/amalgamated/jsonlite
-
-build/%.o: deps/bitcoin/src/primitives/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+build/interpreter.o: deps/bitcoin/src/script/interpreter.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
-
-build/%.o: deps/bitcoin/src/script/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
-	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
-
-build/%.o: deps/bitcoin/src/crypto/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
-	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I build
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
-
-build/%.o: deps/bitcoin/src/util/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
-	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
-
-build/%.o: deps/bitcoin/src/support/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
-	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
-
-build/%.o: deps/bitcoin/src/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
-	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I deps/bitcoin/src/secp256k1/include
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
-
-build/%.o: deps/bitcoin/src/secp256k1/src/%.c $(MUSL_TARGET)
-	$(CLANG) -c $< \
-		-o $@ \
-		$(CFLAGS) \
-		-DENABLE_MODULE_EXTRAKEYS \
-		-DENABLE_MODULE_SCHNORRSIG \
-		-DECMULT_WINDOW_SIZE=6 \
-		-I deps/bitcoin/src/secp256k1/include
 
 MUSL_CFLAGS := $(BASE_CFLAGS) -DPAGE_SIZE=4096
 ifneq (true,$(DEBUG))
