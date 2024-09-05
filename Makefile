@@ -47,7 +47,7 @@ LDFLAGS := --gc-sections --static \
 
 all: build/bitcoin_vm build/bitcoin_vm_stripped
 
-BITCOIN_LIBS := interpreter.o sha256.o jsonlite.o
+BITCOIN_LIBS := interpreter.o sha256.o jsonlite.o script.o hash.o pubkey.o
 
 build/bitcoin_vm_stripped: build/bitcoin_vm
 	$(OBJCOPY) --strip-all $< $@
@@ -66,6 +66,15 @@ build/sha256.o: deps/bitcoin/src/crypto/sha256.cpp $(MUSL_TARGET) $(LIBCXX_TARGE
 
 build/jsonlite.o: deps/jsonlite/amalgamated/jsonlite/jsonlite.c $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANG) -c $< -o $@ $(CFLAGS) -I deps/jsonlite/amalgamated/jsonlite
+
+build/script.o: deps/bitcoin/src/script/script.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+
+build/hash.o: deps/bitcoin/src/hash.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+
+build/pubkey.o: deps/bitcoin/src/pubkey.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I deps/bitcoin/src/secp256k1/include
 
 MUSL_CFLAGS := $(BASE_CFLAGS) -DPAGE_SIZE=4096
 ifneq (true,$(DEBUG))
