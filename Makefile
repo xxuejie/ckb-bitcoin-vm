@@ -48,7 +48,8 @@ LDFLAGS := --gc-sections --static \
 all: build/bitcoin_vm build/bitcoin_vm_stripped
 
 BITCOIN_LIBS := interpreter.o sha256.o jsonlite.o script.o hash.o pubkey.o \
-	secp256k1.o precomputed_ecmult.o
+	secp256k1.o precomputed_ecmult.o uint256.o strencodings.o sha1.o ripemd160.o \
+	hex_base.o transaction.o
 
 build/bitcoin_vm_stripped: build/bitcoin_vm
 	$(OBJCOPY) --strip-all $< $@
@@ -94,6 +95,24 @@ build/precomputed_ecmult.o: deps/bitcoin/src/secp256k1/src/precomputed_ecmult.c 
 		-DENABLE_MODULE_SCHNORRSIG \
 		-DECMULT_WINDOW_SIZE=6 \
 		-I deps/bitcoin/src/secp256k1/include
+
+build/uint256.o: deps/bitcoin/src/uint256.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+
+build/strencodings.o: deps/bitcoin/src/util/strencodings.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+
+build/sha1.o: deps/bitcoin/src/crypto/sha1.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+
+build/ripemd160.o: deps/bitcoin/src/crypto/ripemd160.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+
+build/hex_base.o: deps/bitcoin/src/crypto/hex_base.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+
+build/transaction.o: deps/bitcoin/src/primitives/transaction.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
 
 MUSL_CFLAGS := $(BASE_CFLAGS) -DPAGE_SIZE=4096
 ifneq (true,$(DEBUG))
