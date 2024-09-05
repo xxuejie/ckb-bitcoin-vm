@@ -47,7 +47,7 @@ LDFLAGS := --gc-sections --static \
 
 all: build/bitcoin_vm build/bitcoin_vm_stripped
 
-BITCOIN_LIBS := interpreter.o
+BITCOIN_LIBS := interpreter.o sha256.o
 
 build/bitcoin_vm_stripped: build/bitcoin_vm
 	$(OBJCOPY) --strip-all $< $@
@@ -60,6 +60,9 @@ build/main.o: main.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 
 build/interpreter.o: deps/bitcoin/src/script/interpreter.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+
+build/sha256.o: deps/bitcoin/src/crypto/sha256.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
+	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I build
 
 MUSL_CFLAGS := $(BASE_CFLAGS) -DPAGE_SIZE=4096
 ifneq (true,$(DEBUG))
