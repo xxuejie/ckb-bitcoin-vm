@@ -32,11 +32,7 @@ CXXFLAGS := -g \
   -isystem $(LIBCXX)/release/include/c++/v1 \
   -isystem $(MUSL)/release/include \
   -I deps/bitcoin/src \
-  -DDISABLE_OPTIMIZED_SHA256 \
   $(BASE_CFLAGS)
-ifneq (true,$(DEBUG))
-	CXXFLAGS += -DNO_DEBUG_INFO
-endif
 
 LDFLAGS := --gc-sections --static \
   --nostdlib --sysroot $(MUSL)/release \
@@ -71,27 +67,21 @@ build/%.o: deps/jsonlite/amalgamated/jsonlite/%.c $(MUSL_TARGET) $(LIBCXX_TARGET
 
 build/%.o: deps/bitcoin/src/primitives/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/script/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/crypto/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I build
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/util/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/support/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I deps/bitcoin/src/secp256k1/include
-	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/secp256k1/src/%.c $(MUSL_TARGET)
 	$(CLANG) -c $< \
@@ -103,9 +93,6 @@ build/%.o: deps/bitcoin/src/secp256k1/src/%.c $(MUSL_TARGET)
 		-I deps/bitcoin/src/secp256k1/include
 
 MUSL_CFLAGS := $(BASE_CFLAGS) -DPAGE_SIZE=4096
-ifneq (true,$(DEBUG))
-	MUSL_CFLAGS += -DCKB_MUSL_DUMMIFY_PRINTF
-endif
 
 $(MUSL_TARGET):
 	cd $(MUSL) && \
@@ -126,18 +113,12 @@ $(BUILTINS_TARGET): $(MUSL_TARGET)
 			AR=$(subst clang,llvm-ar,$(CLANG)) \
 			CFLAGS="$(BUILTINS_CFLAGS)"
 
-LLVM_CMAKE_OPTIONS := -DCMAKE_BUILD_TYPE=MinSizeRel
-LLVM_CMAKE_OPTIONS += -DLIBCXX_ENABLE_WIDE_CHARACTERS=OFF -DLIBCXX_ENABLE_UNICODE=OFF -DLIBCXX_ENABLE_RANDOM_DEVICE=OFF
-LLVM_CMAKE_OPTIONS += -DLIBCXXABI_SILENT_TERMINATE=ON
-
 $(LIBCXX_TARGET): $(MUSL_TARGET)
 	cd $(LIBCXX) && \
 		CLANG=$(CLANG) \
 			BASE_CFLAGS="$(BASE_CFLAGS)" \
 			MUSL=$(MUSL)/release \
 			LLVM_VERSION="18.1.8" \
-			LLVM_PATCH="$(realpath llvm_patch)" \
-			LLVM_CMAKE_OPTIONS="$(LLVM_CMAKE_OPTIONS)" \
 		  ./build.sh
 	touch $@
 
