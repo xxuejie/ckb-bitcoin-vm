@@ -67,21 +67,27 @@ build/%.o: deps/jsonlite/amalgamated/jsonlite/%.c $(MUSL_TARGET) $(LIBCXX_TARGET
 
 build/%.o: deps/bitcoin/src/primitives/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/script/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/crypto/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I build
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/util/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/support/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS)
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/%.cpp $(MUSL_TARGET) $(LIBCXX_TARGET)
 	$(CLANGXX) -c $< -o $@ $(CXXFLAGS) -I deps/bitcoin/src/secp256k1/include
+	./scripts/strip_sections $@ sections_to_remove $(OBJCOPY)
 
 build/%.o: deps/bitcoin/src/secp256k1/src/%.c $(MUSL_TARGET)
 	$(CLANG) -c $< \
