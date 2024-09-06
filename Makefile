@@ -32,7 +32,6 @@ CXXFLAGS := -g \
   -isystem $(LIBCXX)/release/include/c++/v1 \
   -isystem $(MUSL)/release/include \
   -I deps/bitcoin/src \
-  -DDISABLE_OPTIMIZED_SHA256 \
   $(BASE_CFLAGS)
 ifneq (true,$(DEBUG))
 	CXXFLAGS += -DNO_DEBUG_INFO
